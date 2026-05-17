@@ -1,0 +1,41 @@
+{
+  "entities": {
+    "Investment": {
+      "title": "Investment",
+      "description": "An asset that the user is tracking (e.g. Apple stock, Bitcoin).",
+      "type": "object",
+      "properties": {
+        "symbol": { "type": "string" },
+        "name": { "type": "string" },
+        "type": { "type": "string", "enum": ["stock", "crypto", "fund", "cash"] },
+        "ownerId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["symbol", "name", "type", "ownerId"]
+    },
+    "Transaction": {
+      "title": "Transaction",
+      "description": "A specific purchase of an investment.",
+      "type": "object",
+      "properties": {
+        "investmentId": { "type": "string" },
+        "pricePerUnit": { "type": "number" },
+        "quantity": { "type": "number" },
+        "commission": { "type": "number" },
+        "date": { "type": "string", "format": "date-time" },
+        "ownerId": { "type": "string" }
+      },
+      "required": ["investmentId", "pricePerUnit", "quantity", "commission", "date", "ownerId"]
+    }
+  },
+  "firestore": {
+    "investments": {
+      "schema": "Investment",
+      "description": "User's investments"
+    },
+    "transactions": {
+      "schema": "Transaction",
+      "description": "All transactions history"
+    }
+  }
+}

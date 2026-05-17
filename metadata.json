@@ -1,0 +1,8 @@
+{
+  "name": "InvesTrack Pro",
+  "description": "Una herramienta intuitiva para asesores financieros que calcula la rentabilidad real de inversiones (acciones, fondos y criptos) descontando gastos y comisiones.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

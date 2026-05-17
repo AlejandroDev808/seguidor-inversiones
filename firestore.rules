@@ -1,0 +1,73 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // --- Investments ---
+    function isValidInvestment(data) {
+      return data.keys().hasAll(['symbol', 'name', 'type', 'ownerId', 'createdAt']) &&
+             data.keys().size() == 5 &&
+             data.symbol is string && data.symbol.size() > 0 && data.symbol.size() <= 20 &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+             data.type in ['stock', 'crypto', 'fund', 'cash'] &&
+             data.ownerId == request.auth.uid &&
+             data.createdAt is timestamp;
+    }
+
+    match /investments/{invId} {
+      allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow get: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if isSignedIn() && isValidInvestment(incoming());
+      allow update: if isSignedIn() && isOwner(resource.data.ownerId) &&
+                      isValidInvestment(incoming()) &&
+                      incoming().diff(existing()).affectedKeys().hasOnly(['symbol', 'name', 'type']);
+      allow delete: if isSignedIn() && isOwner(resource.data.ownerId);
+    }
+
+    // --- Transactions ---
+    function isValidTransaction(data) {
+      return data.keys().hasAll(['investmentId', 'pricePerUnit', 'quantity', 'commission', 'date', 'ownerId']) &&
+             data.keys().size() == 6 &&
+             isValidId(data.investmentId) &&
+             data.pricePerUnit is number && data.pricePerUnit >= 0 &&
+             data.quantity is number && data.quantity != 0 &&
+             data.commission is number && data.commission >= 0 &&
+             data.date is timestamp &&
+             data.ownerId == request.auth.uid;
+    }
+
+    match /transactions/{txId} {
+      allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow get: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if isSignedIn() && isValidTransaction(incoming()) &&
+                      exists(/databases/$(database)/documents/investments/$(incoming().investmentId));
+      allow update: if isSignedIn() && isOwner(resource.data.ownerId) &&
+                      isValidTransaction(incoming()) &&
+                      incoming().investmentId == existing().investmentId &&
+                      incoming().ownerId == existing().ownerId;
+      allow delete: if isSignedIn() && isOwner(resource.data.ownerId);
+    }
+  }
+}
