@@ -45,12 +45,21 @@ async function startServer() {
         const mapping: Record<string, string> = {
           'KAS': 'kaspa', 'KASPA': 'kaspa', 'NEAR': 'near', 'BTC': 'bitcoin', 'ETH': 'ethereum', 'SOL': 'solana'
         };
-        const baseSymbol = symbol.split('-')[0].toUpperCase();
+        const upper = symbol.toUpperCase();
+        const isUsd = upper.endsWith('-USD') || upper.endsWith('=USD');
+        const currency = isUsd ? 'usd' : 'eur';
+        
+        const baseSymbol = symbol.split(/[-=]/)[0].toUpperCase();
         const cgId = mapping[baseSymbol] || baseSymbol.toLowerCase();
-        const response = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${cgId}&vs_currencies=eur`);
+        
+        console.log(`[API] CoinGecko fallback for ${symbol}: ID=${cgId}, Currency=${currency}`);
+        const response = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${cgId}&vs_currencies=${currency}`);
         const data: any = await response.json();
-        return data[cgId]?.eur || null;
+        
+        const price = data[cgId]?.[currency];
+        return price || null;
       } catch (err) {
+        console.error(`[API] CoinGecko fallback failed:`, err);
         return null;
       }
     };
@@ -125,6 +134,8 @@ async function startServer() {
       { symbol: 'BTC-EUR', shortname: 'Bitcoin EUR', quoteType: 'CRYPTOCURRENCY', exchange: 'CCC' },
       { symbol: 'ETH-EUR', shortname: 'Ethereum EUR', quoteType: 'CRYPTOCURRENCY', exchange: 'CCC' },
       { symbol: 'SOL-EUR', shortname: 'Solana EUR', quoteType: 'CRYPTOCURRENCY', exchange: 'CCC' },
+      { symbol: 'KAS-EUR', shortname: 'Kaspa EUR', quoteType: 'CRYPTOCURRENCY', exchange: 'CCC' },
+      { symbol: 'NEAR-EUR', shortname: 'NEAR Protocol EUR', quoteType: 'CRYPTOCURRENCY', exchange: 'CCC' },
       { symbol: 'KAS-USD', shortname: 'Kaspa USD', quoteType: 'CRYPTOCURRENCY', exchange: 'CCC' },
       { symbol: 'NEAR-USD', shortname: 'NEAR Protocol USD', quoteType: 'CRYPTOCURRENCY', exchange: 'CCC' }
     ];
@@ -134,10 +145,19 @@ async function startServer() {
     if (upperQ.includes('BTC') || upperQ.includes('BITCOIN')) baseResults.push(knownCryptoMap[0]);
     if (upperQ.includes('ETH') || upperQ.includes('ETHEREUM')) baseResults.push(knownCryptoMap[1]);
     if (upperQ.includes('SOL') || upperQ.includes('SOLANA')) baseResults.push(knownCryptoMap[2]);
-    if (upperQ.includes('KAS') || upperQ.includes('KASPA')) baseResults.push(knownCryptoMap[3]);
-    if (upperQ.includes('NEAR')) baseResults.push(knownCryptoMap[4]);
+    if (upperQ.includes('KAS') || upperQ.includes('KASPA')) {
+      baseResults.push(knownCryptoMap[3]);
+      baseResults.push(knownCryptoMap[5]);
+    }
+    if (upperQ.includes('NEAR')) {
+      baseResults.push(knownCryptoMap[4]);
+      baseResults.push(knownCryptoMap[6]);
+    }
+    
     // Also if the user types exactly BTC-EUR, etc
-    if (upperQ === 'BTC-EUR') baseResults = [knownCryptoMap[0]];
+    knownCryptoMap.forEach(item => {
+      if (upperQ === item.symbol) baseResults = [item];
+    });
     
     try {
       // Increase count and allow for more broad results
