@@ -329,10 +329,10 @@ export default function Dashboard({ user }: { user: User }) {
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-4 md:p-8 space-y-8">
+    <div className="max-w-6xl mx-auto p-4 md:p-8 space-y-6 sm:space-y-8">
       {/* Top Section: stats + chart */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
           <StatCard 
             title="Inversión Total" 
             value={formatCurrency(globalStats.totalInvested)} 
@@ -411,11 +411,12 @@ export default function Dashboard({ user }: { user: User }) {
              </button>
              <button 
                onClick={() => setShowAddModal(true)}
-               className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors shadow-sm"
+               className="flex items-center gap-2 bg-blue-600 text-white px-3 md:px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors shadow-sm text-sm sm:text-base"
                id="add-investment-trigger"
              >
                <Plus size={20} />
-               Nueva Inversión
+               <span className="hidden sm:inline">Nueva Inversión</span>
+               <span className="sm:hidden">Nueva</span>
              </button>
            </div>
         </div>
@@ -431,7 +432,7 @@ export default function Dashboard({ user }: { user: User }) {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             <AnimatePresence>
               {summaries.map((summary) => (
                 <InvestmentCard 
@@ -457,7 +458,7 @@ export default function Dashboard({ user }: { user: User }) {
               exit={{ y: 20, opacity: 0 }}
               className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col overflow-hidden"
             >
-              <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+              <div className="p-4 sm:p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                 <div>
                   <h3 className="text-xl font-bold">Historial de Transacciones</h3>
                   <p className="text-sm text-slate-500">{investments.find(i => i.id === showHistoryModal)?.name}</p>
@@ -467,8 +468,8 @@ export default function Dashboard({ user }: { user: User }) {
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-6">
-                <table className="w-full text-left">
+              <div className="flex-1 overflow-auto p-4 sm:p-6">
+                <table className="w-full text-left min-w-[500px]">
                   <thead>
                     <tr className="text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-3">
                       <th className="pb-3">Fecha</th>
@@ -530,7 +531,7 @@ export default function Dashboard({ user }: { user: User }) {
                initial={{ scale: 0.9, opacity: 0 }}
                animate={{ scale: 1, opacity: 1 }}
                exit={{ scale: 0.9, opacity: 0 }}
-               className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-6"
+               className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-4 sm:p-6 space-y-4 sm:space-y-6"
             >
               <div className="flex justify-between items-center">
                 <h4 className="font-bold text-lg">Editar Transacción</h4>
@@ -605,7 +606,7 @@ export default function Dashboard({ user }: { user: User }) {
                initial={{ scale: 0.9, opacity: 0 }}
                animate={{ scale: 1, opacity: 1 }}
                exit={{ scale: 0.9, opacity: 0 }}
-               className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-6"
+               className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-4 sm:p-6 space-y-4 sm:space-y-6"
             >
               <div className="flex justify-between items-center">
                 <h4 className="font-bold text-lg">Añadir Operación</h4>
@@ -723,7 +724,7 @@ export default function Dashboard({ user }: { user: User }) {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-6"
+              className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-4 sm:p-6 space-y-4 sm:space-y-6"
             >
               <div className="flex justify-between items-center">
                  <h3 className="text-xl font-bold">Nueva Inversión</h3>
@@ -733,7 +734,7 @@ export default function Dashboard({ user }: { user: User }) {
               </div>
 
               <form onSubmit={handleAddInvestment} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className={cn("space-y-1 relative", (isSearching || searchResults.length > 0) && "z-50")}>
                     <label className="text-xs font-bold text-slate-500 uppercase">Símbolo (Ticker)</label>
                     <input 
@@ -838,7 +839,7 @@ export default function Dashboard({ user }: { user: User }) {
                   </select>
                 </div>
 
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                    <div className={cn("space-y-1", newType === 'cash' && "opacity-50 pointer-events-none")}>
                     <label className="text-xs font-bold text-slate-500 uppercase">{newType === 'cash' ? "Precio (Fijo)" : "Precio Compra"}</label>
                     <input 
