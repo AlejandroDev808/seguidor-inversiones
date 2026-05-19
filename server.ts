@@ -157,13 +157,41 @@ async function startServer() {
       res.json(finalResults);
     } catch (error: any) {
       console.error("Search error (Yahoo):", error.message);
-      // In case Yahoo Finance fails (e.g. Render IP block), return at least the base known cryptos if any matched
+      
+      try {
+        console.log(`[API] Attempting CoinGecko search fallback for "${q}"...`);
+        const cgSearchRes = await fetch(`https://api.coingecko.com/api/v3/search?query=${encodeURIComponent(q)}`);
+        if (cgSearchRes.ok) {
+          const cgData = await cgSearchRes.json();
+          if (cgData.coins && cgData.coins.length > 0) {
+            const cgResults = cgData.coins.slice(0, 10).map((coin: any) => ({
+              symbol: `${coin.symbol.toUpperCase()}-USD`, // CoinGecko doesn't give Yahoo symbols, but we can guess X-USD
+              shortname: coin.name,
+              quoteType: 'CRYPTOCURRENCY',
+              exchange: 'CoinGecko'
+            }));
+            
+            // Merge base results
+            const finalCgResults = [...baseResults];
+            for (const item of cgResults) {
+              if (!finalCgResults.some(r => r.symbol === item.symbol)) {
+                finalCgResults.push(item);
+              }
+            }
+            return res.json(finalCgResults);
+          }
+        }
+      } catch (cgError) {
+        console.error("CoinGecko search fallback error:", cgError);
+      }
+
+      // In case Yahoo Finance and CoinGecko fail (e.g. Render IP block), return at least the base known cryptos if any matched
       if (baseResults.length > 0) {
          return res.json(baseResults);
       }
       
       // Fallback: If no base result matched, return a dummy fallback for them to try adding manually
-      res.json([{ symbol: upperQ, shortname: `Manual entry for ${upperQ}`, quoteType: 'UNKNOWN', exchange: 'Manual' }]);
+      res.json([{ symbol: upperQ, shortname: `Entrada manual para ${upperQ} (Consulta fallida en Render)`, quoteType: 'UNKNOWN', exchange: 'Manual' }]);
     }
   });
 
