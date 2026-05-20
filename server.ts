@@ -150,23 +150,62 @@ async function startServer() {
     const fetchCoinCapPrice = async (symbol: string): Promise<number | null> => {
       try {
         const mapping: Record<string, string> = {
-          'KAS': 'kaspa', 'KASPA': 'kaspa', 'NEAR': 'near-protocol', 'BTC': 'bitcoin', 'ETH': 'ethereum', 'SOL': 'solana'
+          'KAS': 'kaspa', 'KASPA': 'kaspa', 'NEAR': 'near', 'BTC': 'bitcoin', 'ETH': 'ethereum', 'SOL': 'solana'
         };
         const base = symbol.split(/[-=]/)[0].toUpperCase();
         const id = mapping[base] || base.toLowerCase();
         
-        const res = await fetchWithTimeout(`https://api.coincap.io/v2/assets/${id}`);
+        console.log(`[API] Trying CoinCap for ${symbol} (ID: ${id})`);
+        const res = await fetchWithTimeout(`https://api.coincap.io/v2/assets/${id}`, {}, 8000);
         if (res.ok) {
           const data = await res.json();
-          const priceUsd = parseFloat(data.data.priceUsd);
-          if (!isNaN(priceUsd)) {
+          const priceUsd = parseFloat(data?.data?.priceUsd);
+          if (!isNaN(priceUsd) && priceUsd > 0) {
             const rate = await getEurUsdRate();
             const converted = priceUsd * rate;
             console.log(`[API] CoinCap success for ${symbol}: ${priceUsd} USD -> ${converted} EUR`);
             return converted;
+          } else {
+            console.error(`[API] CoinCap invalid price for ${symbol}:`, data);
           }
+        } else {
+          const body = await res.text();
+          console.error(`[API] CoinCap failed for ${symbol}: ${res.status} ${res.statusText} - ${body.substring(0, 100)}`);
         }
-      } catch (e) {}
+      } catch (e: any) {
+        console.error(`[API] CoinCap error for ${symbol}:`, e.message);
+      }
+      return null;
+    };
+
+    const fetchKuCoinPrice = async (symbol: string): Promise<number | null> => {
+      try {
+        const base = symbol.split(/[-=]/)[0].toUpperCase();
+        const pair = `${base}-USDT`;
+        console.log(`[API] Trying KuCoin for ${symbol} via ${pair}`);
+        const res = await fetchWithTimeout(`https://api.kucoin.com/api/v1/market/orderbook/level1?symbol=${pair}`, {}, 8000);
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.data?.price) {
+            const priceUsd = parseFloat(data.data.price);
+            if (!isNaN(priceUsd) && priceUsd > 0) {
+              const rate = await getEurUsdRate();
+              const converted = priceUsd * rate;
+              console.log(`[API] KuCoin success for ${symbol}: ${priceUsd} USD -> ${converted} EUR`);
+              return converted;
+            } else {
+              console.error(`[API] KuCoin invalid price for ${symbol}:`, data.data.price);
+            }
+          } else {
+            console.error(`[API] KuCoin no price field for ${symbol}:`, JSON.stringify(data).substring(0, 150));
+          }
+        } else {
+          const body = await res.text();
+          console.error(`[API] KuCoin failed for ${symbol}: ${res.status} ${res.statusText} - ${body.substring(0, 100)}`);
+        }
+      } catch (e: any) {
+        console.error(`[API] KuCoin error for ${symbol}:`, e.message);
+      }
       return null;
     };
 
@@ -214,13 +253,19 @@ async function startServer() {
          if (bPrice !== null) return bPrice;
        }
 
-       // 3. Try CoinCap (New Fallback)
+       // 3. Try CoinCap
        if (['KAS', 'NEAR', 'BTC', 'ETH', 'SOL'].some(c => sym.includes(c))) {
          const cpPrice = await fetchCoinCapPrice(sym);
          if (cpPrice !== null) return cpPrice;
        }
 
-       // 4. Try CoinGecko
+       // 4. Try KuCoin
+       if (['KAS', 'NEAR', 'SOL'].some(c => sym.includes(c))) {
+         const kcPrice = await fetchKuCoinPrice(sym);
+         if (kcPrice !== null) return kcPrice;
+       }
+
+       // 5. Try CoinGecko
        const cgPrice = await fetchCoinGeckoPrice(sym);
        if (cgPrice !== null) return cgPrice;
 
