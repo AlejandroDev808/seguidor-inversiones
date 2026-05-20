@@ -26,5 +26,6 @@ export interface InvestmentSummary extends Investment {
   currentValue: number;
   netProfit: number;
   profitPercent: number;
+  portfolioPercent: number;
   hasPrice?: boolean;
 }
