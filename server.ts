@@ -7,6 +7,13 @@ const yf: any = (YahooFinance as any).default || YahooFinance;
 
 async function startServer() {
   const app = express();
+  // Justo después de: const app = express();
+  app.use((req, res, next) => {
+    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+    const timestamp = new Date().toISOString();
+    console.log(`[VISITA] ${timestamp} | IP: ${ip} | ${req.method} ${req.path}`);
+    next();
+  });
   const PORT = 3000;
 
   app.use(express.json());
