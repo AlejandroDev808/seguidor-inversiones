@@ -84,18 +84,51 @@ async function startServer() {
       return null;
     };
 
+    const getEurUsdRate = async (): Promise<number> => {
+      try {
+        const res = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
+        if (res.ok) {
+          const data = await res.json();
+          return data.rates.EUR || 0.92; // Fallback to 0.92 if not found
+        }
+      } catch (e) {
+        console.error("[API] Error fetching exchange rate:", e);
+      }
+      return 0.92;
+    };
+
     const fetchBinancePrice = async (symbol: string): Promise<number | null> => {
        try {
          // Convert Yahoo style BTC-EUR to BTCEUR
-         const clean = symbol.replace(/[-=]/g, '').toUpperCase();
-         const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${clean}`);
+         let clean = symbol.replace(/[-=]/g, '').toUpperCase();
+         
+         // Try direct pair first
+         let res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${clean}`);
          if (res.ok) {
            const data = await res.json();
            const price = parseFloat(data.price);
            if (!isNaN(price)) {
-             console.log(`[API] Binance success for ${symbol}: ${price}`);
+             console.log(`[API] Binance direct success for ${symbol}: ${price}`);
              return price;
            }
+         }
+
+         // If direct fails (common for EUR pairs on Binance except main ones), try USDT and convert
+         if (clean.endsWith('EUR')) {
+            const base = clean.replace('EUR', '');
+            const usdtPair = `${base}USDT`;
+            console.log(`[API] Trying Binance USDT fallback for ${symbol} via ${usdtPair}`);
+            const resUsdt = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${usdtPair}`);
+            if (resUsdt.ok) {
+              const dataUsdt = await resUsdt.json();
+              const usdtPrice = parseFloat(dataUsdt.price);
+              if (!isNaN(usdtPrice)) {
+                const rate = await getEurUsdRate();
+                const converted = usdtPrice * rate;
+                console.log(`[API] Binance USDT success for ${symbol}: ${usdtPrice} USD -> ${converted} EUR (rate: ${rate})`);
+                return converted;
+              }
+            }
          }
        } catch (e) {}
        return null;
@@ -131,25 +164,17 @@ async function startServer() {
     };
 
     const getPriceWithFallbacks = async (sym: string): Promise<number | null> => {
-       // 1. Try Yahoo Finance Library
-       try {
-         if (yf && typeof yf.quote === 'function') {
-           const q: any = await yf.quote(sym);
-           if (q && q.regularMarketPrice) return q.regularMarketPrice;
-         }
-       } catch (e) {}
-
-       // 2. Try Yahoo Direct Fetch (Commonly works better on Render)
+       // 1. Try Yahoo Direct Fetch (Commonly works better on Render and avoids yf.quote issue)
        const yDirect = await fetchYahooDirect(sym);
        if (yDirect !== null) return yDirect;
 
-       // 3. Try Binance (For Cryptos)
+       // 2. Try Binance (For Cryptos - handles conversion EUR/USD)
        if (sym.includes('-') || sym.includes('=') || ['BTC', 'ETH', 'SOL', 'KAS', 'NEAR'].some(c => sym.includes(c))) {
          const bPrice = await fetchBinancePrice(sym);
          if (bPrice !== null) return bPrice;
        }
 
-       // 4. Try CoinGecko
+       // 3. Try CoinGecko
        const cgPrice = await fetchCoinGeckoPrice(sym);
        if (cgPrice !== null) return cgPrice;
 
