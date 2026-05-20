@@ -66,7 +66,7 @@ export default function App() {
                 Entrar con Google
               </button>
               <p className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold">
-                By Google AI Studio
+                By Alejandro Béjar el pisto
               </p>
             </div>
           </motion.div>
