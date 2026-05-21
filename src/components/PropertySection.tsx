@@ -71,9 +71,11 @@ const EMPTY_FORM = {
 export default function PropertySection({
   user,
   onEquityChange,
+  onStatsChange,
 }: {
   user: User;
   onEquityChange?: (equity: number) => void;
+  onStatsChange?: (stats: PropertyStats[]) => void;
 }) {
   const [properties, setProperties] = useState<Property[]>([]);
   const [showModal, setShowModal] = useState(false);
@@ -94,7 +96,8 @@ export default function PropertySection({
   useEffect(() => {
     const totalEquity = stats.reduce((acc, s) => acc + s.equity, 0);
     onEquityChange?.(totalEquity);
-  }, [stats, onEquityChange]);
+    onStatsChange?.(stats);
+  }, [stats, onEquityChange, onStatsChange]);
 
   const totals = useMemo(() => {
     const totalAppraisal = stats.reduce((acc, s) => acc + s.property.appraisalValue, 0);
