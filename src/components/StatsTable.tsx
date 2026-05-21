@@ -37,7 +37,6 @@ function formatQuantity(value: number, type: string): string {
       maximumFractionDigits: 2,
     }).format(value);
   }
-  // Criptos pueden tener muchos decimales; acciones suelen ser enteras
   const decimals = value % 1 !== 0 && value < 1000 ? 6 : 4;
   return new Intl.NumberFormat('es-ES', {
     minimumFractionDigits: 0,
@@ -47,23 +46,15 @@ function formatQuantity(value: number, type: string): string {
 
 // ─── Sub-componente: icono de ordenación ──────────────────────────────────────
 
-function SortIcon({
-  field,
-  sort,
-}: {
-  field: SortField;
-  sort: SortState;
-}) {
+function SortIcon({ field, sort }: { field: SortField; sort: SortState }) {
   if (sort.field !== field)
     return <ArrowUpDown size={12} className="text-slate-300 shrink-0" />;
-  return sort.dir === 'asc' ? (
-    <ArrowUp size={12} className="text-blue-500 shrink-0" />
-  ) : (
-    <ArrowDown size={12} className="text-blue-500 shrink-0" />
-  );
+  return sort.dir === 'asc'
+    ? <ArrowUp size={12} className="text-blue-500 shrink-0" />
+    : <ArrowDown size={12} className="text-blue-500 shrink-0" />;
 }
 
-// ─── Sub-componente: barra de porcentaje de cartera ───────────────────────────
+// ─── Sub-componente: barra de % cartera ───────────────────────────────────────
 
 function AllocationBar({ percent }: { percent: number }) {
   return (
@@ -86,81 +77,44 @@ function AllocationBar({ percent }: { percent: number }) {
 // ─── Componente principal ─────────────────────────────────────────────────────
 
 export default function StatsTable({ summaries }: StatsTableProps) {
-  const [sort, setSort] = useState<SortState>({
-    field: 'currentValue',
-    dir: 'desc',
-  });
+  const [sort, setSort] = useState<SortState>({ field: 'currentValue', dir: 'desc' });
 
   const toggleSort = (field: SortField) => {
-    setSort((prev) =>
+    setSort(prev =>
       prev.field === field
         ? { field, dir: prev.dir === 'desc' ? 'asc' : 'desc' }
         : { field, dir: 'desc' }
     );
   };
 
+  // Primero agrupamos por símbolo, luego ordenamos
   const sorted = useMemo(() => {
     return [...summaries].sort((a, b) => {
       let valA: number | string;
       let valB: number | string;
 
       switch (sort.field) {
-        case 'name':
-          valA = a.name.toLowerCase();
-          valB = b.name.toLowerCase();
-          break;
-        case 'totalQuantity':
-          valA = a.totalQuantity;
-          valB = b.totalQuantity;
-          break;
-        case 'avgPrice':
-          valA = a.avgPrice;
-          valB = b.avgPrice;
-          break;
-        case 'currentPrice':
-          valA = a.currentPrice;
-          valB = b.currentPrice;
-          break;
-        case 'currentValue':
-          valA = a.currentValue;
-          valB = b.currentValue;
-          break;
-        case 'netProfit':
-          valA = a.netProfit;
-          valB = b.netProfit;
-          break;
-        case 'profitPercent':
-          valA = a.profitPercent;
-          valB = b.profitPercent;
-          break;
-        case 'portfolioPercent':
-          valA = a.portfolioPercent;
-          valB = b.portfolioPercent;
-          break;
-        default:
-          return 0;
+        case 'name':          valA = a.name.toLowerCase();   valB = b.name.toLowerCase();   break;
+        case 'totalQuantity': valA = a.totalQuantity;        valB = b.totalQuantity;        break;
+        case 'avgPrice':      valA = a.avgPrice;             valB = b.avgPrice;             break;
+        case 'currentPrice':  valA = a.currentPrice;         valB = b.currentPrice;         break;
+        case 'currentValue':  valA = a.currentValue;         valB = b.currentValue;         break;
+        case 'netProfit':     valA = a.netProfit;            valB = b.netProfit;            break;
+        case 'profitPercent': valA = a.profitPercent;        valB = b.profitPercent;        break;
+        case 'portfolioPercent': valA = a.portfolioPercent;  valB = b.portfolioPercent;     break;
+        default: return 0;
       }
 
       if (typeof valA === 'string' && typeof valB === 'string') {
-        return sort.dir === 'asc'
-          ? valA.localeCompare(valB)
-          : valB.localeCompare(valA);
+        return sort.dir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
       }
-
-      const numA = valA as number;
-      const numB = valB as number;
-      return sort.dir === 'asc' ? numA - numB : numB - numA;
+      return sort.dir === 'asc' ? (valA as number) - (valB as number) : (valB as number) - (valA as number);
     });
   }, [summaries, sort]);
 
   if (summaries.length === 0) return null;
 
-  // Cabecera de columna clicable
-  const Th = ({
-    field,
-    children,
-    className,
-  }: {
+  const Th = ({ field, children, className }: {
     field: SortField;
     children: React.ReactNode;
     className?: string;
@@ -181,56 +135,36 @@ export default function StatsTable({ summaries }: StatsTableProps) {
 
   return (
     <div className="space-y-4">
-      {/* Encabezado de sección */}
+      {/* Encabezado */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="p-2 bg-slate-50 rounded-lg">
             <BarChart3 size={18} className="text-slate-500" />
           </div>
           <div>
-            <h2 className="text-xl font-bold tracking-tight">
-              Estadísticas por Activo
-            </h2>
-            <p className="text-xs text-slate-400 font-medium">
-              Haz clic en cualquier columna para ordenar
-            </p>
+            <h2 className="text-xl font-bold tracking-tight">Estadísticas por Activo</h2>
+            <p className="text-xs text-slate-400 font-medium">Haz clic en cualquier columna para ordenar</p>
           </div>
         </div>
         <span className="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-lg">
-          {summaries.length} activo{summaries.length !== 1 ? 's' : ''}
+          {sorted.length} activo{sorted.length !== 1 ? 's' : ''}
         </span>
       </div>
 
-      {/* Tabla — scroll horizontal en móvil */}
+      {/* Tabla */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[780px]">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50/60">
-                <Th field="name" className="pl-5 pr-3">
-                  Activo
-                </Th>
-                <Th field="totalQuantity" className="px-3 text-right justify-end">
-                  Cantidad
-                </Th>
-                <Th field="avgPrice" className="px-3 text-right justify-end">
-                  P. Medio
-                </Th>
-                <Th field="currentPrice" className="px-3 text-right justify-end">
-                  P. Actual
-                </Th>
-                <Th field="currentValue" className="px-3 text-right justify-end">
-                  Valor Total
-                </Th>
-                <Th field="netProfit" className="px-3 text-right justify-end">
-                  Resultado (€)
-                </Th>
-                <Th field="profitPercent" className="px-3 text-right justify-end">
-                  Rentab. (%)
-                </Th>
-                <Th field="portfolioPercent" className="px-3 pr-5">
-                  % Cartera
-                </Th>
+                <Th field="name" className="pl-5 pr-3">Activo</Th>
+                <Th field="totalQuantity" className="px-3 text-right justify-end">Cantidad</Th>
+                <Th field="avgPrice" className="px-3 text-right justify-end">P. Medio</Th>
+                <Th field="currentPrice" className="px-3 text-right justify-end">P. Actual</Th>
+                <Th field="currentValue" className="px-3 text-right justify-end">Valor Total</Th>
+                <Th field="netProfit" className="px-3 text-right justify-end">Resultado (€)</Th>
+                <Th field="profitPercent" className="px-3 text-right justify-end">Rentab. (%)</Th>
+                <Th field="portfolioPercent" className="px-3 pr-5">% Cartera</Th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
@@ -241,7 +175,7 @@ export default function StatsTable({ summaries }: StatsTableProps) {
 
                   return (
                     <motion.tr
-                      key={s.id}
+                      key={s.symbol}
                       layout
                       initial={{ opacity: 0, y: -4 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -258,12 +192,8 @@ export default function StatsTable({ summaries }: StatsTableProps) {
                             </span>
                           </div>
                           <div className="min-w-0">
-                            <p className="text-sm font-bold text-slate-900 leading-tight truncate max-w-[140px]">
-                              {s.name}
-                            </p>
-                            <p className="text-[10px] font-bold text-slate-400 font-mono">
-                              {s.symbol}
-                            </p>
+                            <p className="text-sm font-bold text-slate-900 leading-tight truncate max-w-[140px]">{s.name}</p>
+                            <p className="text-[10px] font-bold text-slate-400 font-mono">{s.symbol}</p>
                           </div>
                         </div>
                       </td>
@@ -277,75 +207,50 @@ export default function StatsTable({ summaries }: StatsTableProps) {
 
                       {/* Precio medio */}
                       <td className="px-3 py-4 text-right">
-                        {s.type === 'cash' ? (
-                          <span className="text-xs text-slate-400">—</span>
-                        ) : (
-                          <span className="text-sm font-semibold text-slate-700 tabular-nums">
-                            {formatCurrency(s.avgPrice)}
-                          </span>
-                        )}
+                        {s.type === 'cash'
+                          ? <span className="text-xs text-slate-400">—</span>
+                          : <span className="text-sm font-semibold text-slate-700 tabular-nums">{formatCurrency(s.avgPrice)}</span>
+                        }
                       </td>
 
                       {/* Precio actual */}
                       <td className="px-3 py-4 text-right">
-                        {s.type === 'cash' ? (
-                          <span className="text-xs text-slate-400">—</span>
-                        ) : !s.hasPrice ? (
-                          <span className="text-xs font-bold text-slate-300 animate-pulse">
-                            ...
-                          </span>
-                        ) : (
-                          <span className="text-sm font-semibold text-slate-700 tabular-nums">
-                            {formatCurrency(s.currentPrice)}
-                          </span>
-                        )}
+                        {s.type === 'cash'
+                          ? <span className="text-xs text-slate-400">—</span>
+                          : !s.hasPrice
+                            ? <span className="text-xs font-bold text-slate-300 animate-pulse">...</span>
+                            : <span className="text-sm font-semibold text-slate-700 tabular-nums">{formatCurrency(s.currentPrice)}</span>
+                        }
                       </td>
 
                       {/* Valor total */}
                       <td className="px-3 py-4 text-right">
-                        <span className="text-sm font-bold text-slate-900 tabular-nums">
-                          {formatCurrency(s.currentValue)}
-                        </span>
+                        <span className="text-sm font-bold text-slate-900 tabular-nums">{formatCurrency(s.currentValue)}</span>
                       </td>
 
                       {/* Resultado € */}
                       <td className="px-3 py-4 text-right">
-                        {!showPnL ? (
-                          <span className="text-xs text-slate-300">—</span>
-                        ) : (
-                          <div
-                            className={cn(
-                              'inline-flex items-center gap-1 font-bold text-sm tabular-nums',
-                              isPositive ? 'text-emerald-600' : 'text-rose-600'
-                            )}
-                          >
-                            {isPositive ? (
-                              <TrendingUp size={13} className="shrink-0" />
-                            ) : (
-                              <TrendingDown size={13} className="shrink-0" />
-                            )}
-                            {formatCurrency(s.netProfit)}
-                          </div>
-                        )}
+                        {!showPnL
+                          ? <span className="text-xs text-slate-300">—</span>
+                          : (
+                            <div className={cn('inline-flex items-center gap-1 font-bold text-sm tabular-nums', isPositive ? 'text-emerald-600' : 'text-rose-600')}>
+                              {isPositive ? <TrendingUp size={13} className="shrink-0" /> : <TrendingDown size={13} className="shrink-0" />}
+                              {formatCurrency(s.netProfit)}
+                            </div>
+                          )
+                        }
                       </td>
 
                       {/* Rentabilidad % */}
                       <td className="px-3 py-4 text-right">
-                        {!showPnL || s.type === 'cash' ? (
-                          <span className="text-xs text-slate-300">—</span>
-                        ) : (
-                          <span
-                            className={cn(
-                              'inline-block text-xs font-black px-2 py-1 rounded-lg tabular-nums',
-                              isPositive
-                                ? 'bg-emerald-50 text-emerald-700'
-                                : 'bg-rose-50 text-rose-700'
-                            )}
-                          >
-                            {isPositive ? '+' : ''}
-                            {formatPercent(s.profitPercent)}
-                          </span>
-                        )}
+                        {!showPnL || s.type === 'cash'
+                          ? <span className="text-xs text-slate-300">—</span>
+                          : (
+                            <span className={cn('inline-block text-xs font-black px-2 py-1 rounded-lg tabular-nums', isPositive ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700')}>
+                              {isPositive ? '+' : ''}{formatPercent(s.profitPercent)}
+                            </span>
+                          )
+                        }
                       </td>
 
                       {/* % Cartera */}
@@ -360,8 +265,7 @@ export default function StatsTable({ summaries }: StatsTableProps) {
           </table>
         </div>
 
-        {/* Fila de totales */}
-        <TotalsRow summaries={summaries} />
+        <TotalsRow rows={sorted} />
       </div>
     </div>
   );
@@ -369,51 +273,32 @@ export default function StatsTable({ summaries }: StatsTableProps) {
 
 // ─── Fila de totales ──────────────────────────────────────────────────────────
 
-function TotalsRow({ summaries }: { summaries: InvestmentSummary[] }) {
-  const totalValue = summaries.reduce((acc, s) => acc + s.currentValue, 0);
-  const totalInvested = summaries.reduce((acc, s) => acc + s.totalInvested, 0);
-  const totalProfit = totalValue - totalInvested;
-  const totalProfitPercent =
-    totalInvested > 0 ? (totalProfit / totalInvested) * 100 : 0;
+function TotalsRow({ rows }: { rows: InvestmentSummary[] }) {
+  const totalValue    = rows.reduce((acc, r) => acc + r.currentValue, 0);
+  const totalInvested = rows.reduce((acc, r) => acc + r.totalInvested, 0);
+  const totalProfit   = totalValue - totalInvested;
+  const totalProfitPercent = totalInvested > 0 ? (totalProfit / totalInvested) * 100 : 0;
   const isPositive = totalProfit >= 0;
 
   return (
     <div className="border-t border-slate-200 bg-slate-50/80 px-5 py-3 flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
-      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-        Totales
-      </span>
+      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Totales</span>
       <div className="flex flex-wrap items-center gap-x-6 gap-y-1 ml-auto">
         <div className="text-right">
-          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
-            Valor Total
-          </p>
-          <p className="text-sm font-black text-slate-900 tabular-nums">
-            {formatCurrency(totalValue)}
-          </p>
+          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Valor Total</p>
+          <p className="text-sm font-black text-slate-900 tabular-nums">{formatCurrency(totalValue)}</p>
         </div>
         <div className="text-right">
-          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
-            Coste Total
-          </p>
-          <p className="text-sm font-bold text-slate-700 tabular-nums">
-            {formatCurrency(totalInvested)}
-          </p>
+          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Coste Total</p>
+          <p className="text-sm font-bold text-slate-700 tabular-nums">{formatCurrency(totalInvested)}</p>
         </div>
         <div className="text-right">
-          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
-            Resultado Neto
-          </p>
-          <p
-            className={cn(
-              'text-sm font-black tabular-nums flex items-center gap-1 justify-end',
-              isPositive ? 'text-emerald-600' : 'text-rose-600'
-            )}
-          >
+          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Resultado Neto</p>
+          <p className={cn('text-sm font-black tabular-nums flex items-center gap-1 justify-end', isPositive ? 'text-emerald-600' : 'text-rose-600')}>
             {isPositive ? <TrendingUp size={13} /> : <TrendingDown size={13} />}
             {formatCurrency(totalProfit)}
             <span className="text-[10px] font-bold opacity-70">
-              ({isPositive ? '+' : ''}
-              {formatPercent(totalProfitPercent)})
+              ({isPositive ? '+' : ''}{formatPercent(totalProfitPercent)})
             </span>
           </p>
         </div>
