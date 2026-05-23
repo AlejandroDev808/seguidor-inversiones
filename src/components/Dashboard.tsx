@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { User } from 'firebase/auth';
+import { User, getIdToken } from 'firebase/auth';
 import { collection, query, where, onSnapshot, addDoc, serverTimestamp, deleteDoc, doc, updateDoc, Timestamp } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
 import { Investment, Transaction, InvestmentSummary, PropertyStats } from '../types';
@@ -114,9 +114,10 @@ export default function Dashboard({ user }: { user: User }) {
         return;
       }
       
+      const token = auth.currentUser ? await getIdToken(auth.currentUser) : '';
       const response = await axios.get('/api/prices', { 
         params: { symbols },
-        headers: { 'Cache-Control': 'no-cache' }
+        headers: { 'Cache-Control': 'no-cache', Authorization: `Bearer ${token}` }
       });
       setPrices(prev => ({ ...prev, ...response.data }));
     } catch (error) {
@@ -139,7 +140,8 @@ export default function Dashboard({ user }: { user: User }) {
         setIsSearching(true);
         console.log("[Search] Fetching results for:", newSymbol);
         try {
-          const response = await axios.get('/api/search', { params: { q: newSymbol } });
+          const token = auth.currentUser ? await getIdToken(auth.currentUser) : '';
+          const response = await axios.get('/api/search', { params: { q: newSymbol }, headers: { Authorization: `Bearer ${token}` } });
           console.log("[Search] Results received:", response.data);
           setSearchResults(response.data || []);
         } catch (error) {

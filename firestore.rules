@@ -37,8 +37,8 @@ service cloud.firestore {
     }
 
     match /investments/{invId} {
-      allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
-      allow get: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow list: if isSignedIn() && request.auth.uid != null;
+      allow get:  if isSignedIn() && resource.data.ownerId == request.auth.uid;
       allow create: if isSignedIn() && isValidInvestment(incoming());
       allow update: if isSignedIn() && isOwner(resource.data.ownerId) &&
                       isValidInvestment(incoming()) &&
@@ -59,14 +59,41 @@ service cloud.firestore {
     }
 
     match /transactions/{txId} {
-      allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
-      allow get: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow list: if isSignedIn() && request.auth.uid != null;
+      allow get:  if isSignedIn() && resource.data.ownerId == request.auth.uid;
       allow create: if isSignedIn() && isValidTransaction(incoming()) &&
                       exists(/databases/$(database)/documents/investments/$(incoming().investmentId));
       allow update: if isSignedIn() && isOwner(resource.data.ownerId) &&
                       isValidTransaction(incoming()) &&
                       incoming().investmentId == existing().investmentId &&
                       incoming().ownerId == existing().ownerId;
+      allow delete: if isSignedIn() && isOwner(resource.data.ownerId);
+    }
+
+    // --- Properties ---
+    function isValidProperty(data) {
+      return data.keys().hasAll(['ownerId', 'name', 'purchasePrice', 'appraisalValue',
+                                  'hasHypothec', 'monthlyPayment', 'monthsRemaining',
+                                  'createdAt', 'updatedAt']) &&
+             data.ownerId == request.auth.uid &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+             data.purchasePrice is number && data.purchasePrice >= 0 &&
+             data.appraisalValue is number && data.appraisalValue >= 0 &&
+             data.hasHypothec is bool &&
+             data.monthlyPayment is number && data.monthlyPayment >= 0 &&
+             data.monthsRemaining is int && data.monthsRemaining >= 0 &&
+             data.createdAt is timestamp &&
+             data.updatedAt is timestamp;
+    }
+
+    match /properties/{propId} {
+      allow list: if isSignedIn() && request.auth.uid != null;
+      allow get:  if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if isSignedIn() && isValidProperty(incoming());
+      allow update: if isSignedIn() && isOwner(resource.data.ownerId) &&
+                      isValidProperty(incoming()) &&
+                      incoming().ownerId == existing().ownerId &&
+                      incoming().createdAt == existing().createdAt;
       allow delete: if isSignedIn() && isOwner(resource.data.ownerId);
     }
   }

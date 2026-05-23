@@ -1,15 +1,32 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, User } from 'firebase/auth';
 import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
-// Utilizamos tu propia configuración de Firebase (investrack-8214e)
+
+const requiredEnvVars = [
+  'VITE_FIREBASE_API_KEY',
+  'VITE_FIREBASE_AUTH_DOMAIN',
+  'VITE_FIREBASE_PROJECT_ID',
+  'VITE_FIREBASE_STORAGE_BUCKET',
+  'VITE_FIREBASE_MESSAGING_SENDER_ID',
+  'VITE_FIREBASE_APP_ID',
+] as const;
+
+for (const key of requiredEnvVars) {
+  if (!import.meta.env[key]) {
+    throw new Error(
+      `[Firebase] Variable de entorno obligatoria no definida: ${key}. ` +
+      `Añádela en tu archivo .env o en las variables de entorno de Render.`
+    );
+  }
+}
+
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyANiCuo5LsxkOoisowqE-gRWR3uqZ5HpBg",
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "investrack-8214e.firebaseapp.com",
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "investrack-8214e",
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "investrack-8214e.firebasestorage.app",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "902375864319",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:902375864319:web:3e1910c2ef444300f6d9ca",
-  measurementId: "G-B2ZKLFCVWB"
+  apiKey:            import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain:        import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId:         import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket:     import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId:             import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
 const app = initializeApp(firebaseConfig);
