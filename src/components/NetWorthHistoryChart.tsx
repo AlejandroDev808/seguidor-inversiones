@@ -20,6 +20,14 @@ export default function NetWorthHistoryChart({
   // de las fechas de creación de los documentos en `investments` (excluye
   // inmuebles): se ordenan cronológicamente y se acumula su valor actual para
   // obtener el valor total en cada punto de la línea temporal.
+  //
+  // Importante: cada punto guarda su `date` original (timestamp numérico) en
+  // lugar de una etiqueta de texto ya formateada. Si dos inversiones se crean
+  // el mismo día, formatear la fecha a texto produce etiquetas duplicadas en
+  // el eje X, y Recharts resuelve el tooltip por coincidencia de etiqueta —
+  // con duplicados, siempre encuentra la primera, por lo que el tooltip queda
+  // "pegado" al valor del primer punto sin importar dónde esté el cursor.
+  // Usando un eje numérico con el timestamp real, cada punto es único.
   const chartData = useMemo(() => {
     const events = summaries
       .map(s => ({ date: toMillis(s.createdAt), value: s.currentValue }))
@@ -27,16 +35,23 @@ export default function NetWorthHistoryChart({
       .sort((a, b) => a.date - b.date);
 
     let cumulative = 0;
-    return events.map(e => {
+    const points = events.map(e => {
       cumulative += e.value;
-      return {
-        label: new Date(e.date).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: '2-digit' }),
-        total: cumulative,
-      };
+      return { date: e.date, total: cumulative };
     });
+
+    console.log('[NetWorthHistoryChart] chartData:', points.map(p => ({
+      date: new Date(p.date).toISOString(),
+      total: p.total,
+    })));
+
+    return points;
   }, [summaries]);
 
   if (chartData.length < 2) return null;
+
+  const formatDate = (ms: number) =>
+    new Date(ms).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: '2-digit' });
 
   const last = chartData[chartData.length - 1].total;
 
@@ -90,7 +105,16 @@ export default function NetWorthHistoryChart({
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-            <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+            <XAxis
+              dataKey="date"
+              type="number"
+              scale="time"
+              domain={['dataMin', 'dataMax']}
+              tickFormatter={formatDate}
+              tick={{ fontSize: 11, fill: '#94a3b8' }}
+              axisLine={false}
+              tickLine={false}
+            />
             <YAxis
               domain={yDomain}
               tick={{ fontSize: 11, fill: '#94a3b8' }}
@@ -100,6 +124,7 @@ export default function NetWorthHistoryChart({
               tickFormatter={(v: number) => formatCurrency(v, 0)}
             />
             <Tooltip
+              labelFormatter={(value: number) => formatDate(value)}
               formatter={(value: number) => formatCurrency(value)}
               contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '12px' }}
             />
