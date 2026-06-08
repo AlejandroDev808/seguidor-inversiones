@@ -3,7 +3,7 @@ import { Timestamp } from 'firebase/firestore';
 import { InvestmentSummary, PropertyStats } from '../types';
 import { cn, formatCurrency, formatPercent } from '../lib/utils';
 import { TrendingUp, TrendingDown, LineChart as LineChartIcon } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ResponsiveContainer } from 'recharts';
 
 function toMillis(value: any): number {
   if (value instanceof Timestamp) return value.toMillis();
@@ -107,6 +107,21 @@ export default function NetWorthHistoryChart({
               strokeWidth={2}
               fill="url(#netWorthGradient)"
             />
+            {totalInvested > 0 && (
+              <ReferenceLine
+                y={totalInvested}
+                stroke="#f59e0b"
+                strokeWidth={1.5}
+                strokeDasharray="6 4"
+                label={{
+                  value: 'Capital invertido (Break-even)',
+                  position: 'insideTopLeft',
+                  fill: '#f59e0b',
+                  fontSize: 11,
+                  fontWeight: 700,
+                }}
+              />
+            )}
           </AreaChart>
         </ResponsiveContainer>
       </div>
