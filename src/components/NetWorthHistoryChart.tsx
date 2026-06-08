@@ -49,6 +49,12 @@ export default function NetWorthHistoryChart({
   const profitPercent = totalInvested > 0 ? (netProfit / totalInvested) * 100 : 0;
   const isPositive = netProfit >= 0;
 
+  // El dominio del eje Y debe abarcar siempre el capital invertido para que la
+  // línea de break-even sea visible aunque el valor de las inversiones quede
+  // por debajo (o muy por encima) de ese umbral.
+  const maxValue = Math.max(...chartData.map(d => d.total));
+  const yDomain: [number, number] = [0, Math.max(maxValue, totalInvested) * 1.1];
+
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-5">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -86,6 +92,7 @@ export default function NetWorthHistoryChart({
             <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
             <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
             <YAxis
+              domain={yDomain}
               tick={{ fontSize: 11, fill: '#94a3b8' }}
               axisLine={false}
               tickLine={false}
