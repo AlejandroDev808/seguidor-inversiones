@@ -1,65 +1,45 @@
-import { useEffect, useState } from 'react';
-import { User } from 'firebase/auth';
-import { collection, query, where, orderBy, onSnapshot, doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../lib/firebase';
-import { NetWorthSnapshot } from '../types';
+import { useMemo } from 'react';
+import { Timestamp } from 'firebase/firestore';
+import { InvestmentSummary, PropertyStats } from '../types';
 import { cn, formatCurrency, formatPercent } from '../lib/utils';
 import { TrendingUp, TrendingDown, LineChart as LineChartIcon } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
+function toMillis(value: any): number {
+  if (value instanceof Timestamp) return value.toMillis();
+  if (value?.seconds) return value.seconds * 1000;
+  return 0;
+}
+
 export default function NetWorthHistoryChart({
-  user,
-  investmentValue,
-  propertyEquity,
-  loading,
+  summaries,
+  propertyStats,
 }: {
-  user: User;
-  investmentValue: number;
-  propertyEquity: number;
-  loading: boolean;
+  summaries: InvestmentSummary[];
+  propertyStats: PropertyStats[];
 }) {
-  const [snapshots, setSnapshots] = useState<NetWorthSnapshot[]>([]);
+  // Reconstruye la evolución del patrimonio a partir de las fechas de creación
+  // de inversiones e inmuebles: se ordenan cronológicamente y se acumula su
+  // valor actual para obtener el patrimonio total en cada punto de la línea temporal.
+  const chartData = useMemo(() => {
+    const events = [
+      ...summaries.map(s => ({ date: toMillis(s.createdAt), value: s.currentValue })),
+      ...propertyStats.map(ps => ({ date: toMillis(ps.property.createdAt), value: ps.equity })),
+    ]
+      .filter(e => e.date > 0)
+      .sort((a, b) => a.date - b.date);
 
-  // Suscripción al histórico de snapshots del usuario
-  useEffect(() => {
-    const q = query(
-      collection(db, 'netWorthSnapshots'),
-      where('ownerId', '==', user.uid),
-      orderBy('date', 'asc')
-    );
-    const unsub = onSnapshot(q, (snapshot) => {
-      setSnapshots(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as NetWorthSnapshot)));
+    let cumulative = 0;
+    return events.map(e => {
+      cumulative += e.value;
+      return {
+        label: new Date(e.date).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: '2-digit' }),
+        total: cumulative,
+      };
     });
-    return () => unsub();
-  }, [user.uid]);
+  }, [summaries, propertyStats]);
 
-  // Guarda (o actualiza) el snapshot del día actual con el último patrimonio conocido.
-  // El ID determinista (uid_fecha) garantiza un único documento por día.
-  useEffect(() => {
-    if (loading) return;
-    const total = investmentValue + propertyEquity;
-    if (total === 0) return;
-
-    const today = new Date().toISOString().slice(0, 10);
-    const ref = doc(db, 'netWorthSnapshots', `${user.uid}_${today}`);
-    setDoc(ref, {
-      ownerId: user.uid,
-      date: today,
-      totalNetWorth: total,
-      investmentValue,
-      propertyEquity,
-      createdAt: serverTimestamp(),
-    }, { merge: true }).catch(err => console.error('Error guardando snapshot de patrimonio:', err));
-  }, [user.uid, investmentValue, propertyEquity, loading]);
-
-  if (snapshots.length < 2) return null;
-
-  const chartData = snapshots.map(s => ({
-    label: new Date(s.date).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' }),
-    total: s.totalNetWorth,
-    investments: s.investmentValue,
-    realEstate: s.propertyEquity,
-  }));
+  if (chartData.length < 2) return null;
 
   const first = chartData[0].total;
   const last = chartData[chartData.length - 1].total;

@@ -944,10 +944,8 @@ export default function Dashboard({ user }: { user: User }) {
 
       {/* Histórico de Patrimonio Neto */}
       <NetWorthHistoryChart
-        user={user}
-        investmentValue={globalStats.currentValue}
-        propertyEquity={propertyEquity}
-        loading={loading}
+        summaries={summaries}
+        propertyStats={propertyStats}
       />
     </div>
   );
