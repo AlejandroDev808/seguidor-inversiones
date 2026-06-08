@@ -41,11 +41,16 @@ export default function NetWorthHistoryChart({
 
   if (chartData.length < 2) return null;
 
-  const first = chartData[0].total;
   const last = chartData[chartData.length - 1].total;
-  const change = last - first;
-  const changePercent = first !== 0 ? (change / Math.abs(first)) * 100 : 0;
-  const isPositive = change >= 0;
+
+  // Beneficio neto real de las inversiones: valor actual menos capital invertido
+  // (no la diferencia entre el primer y el último punto del histórico, que mezcla
+  // capital aportado con revalorización y no representa una ganancia/pérdida real).
+  const totalInvested = summaries.reduce((acc, s) => acc + s.totalInvested, 0);
+  const currentValue = summaries.reduce((acc, s) => acc + s.currentValue, 0);
+  const netProfit = currentValue - totalInvested;
+  const profitPercent = totalInvested > 0 ? (netProfit / totalInvested) * 100 : 0;
+  const isPositive = netProfit >= 0;
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-5">
@@ -67,7 +72,7 @@ export default function NetWorthHistoryChart({
         )}>
           {isPositive ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
           <span>
-            {isPositive ? '+' : ''}{formatCurrency(change, 0)} / {isPositive ? '+' : ''}{formatPercent(changePercent)}
+            {isPositive ? '+' : ''}{formatCurrency(netProfit, 0)} / {isPositive ? '+' : ''}{formatPercent(profitPercent)}
           </span>
         </div>
       </div>
